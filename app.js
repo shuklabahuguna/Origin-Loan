@@ -31,8 +31,8 @@ const employmentTypes = [
   ["retired", "Retired"], ["unemployed", "Unemployed"], ["other", "Other"]
 ];
 const statusLabels = {
-  submitted: "Submitted", "under-review": "Under review", conditional: "Conditional",
-  approved: "Approved", accepted: "Accepted", denied: "Declined", funded: "Funded"
+  processing: "Processing", "under-review": "In underwriting", conditional: "Conditional approval",
+  approved: "Approved for closing", accepted: "Accepted", denied: "Declined", funded: "Funded"
 };
 const fieldNames = {
   firstName: "First name", middleName: "Middle name", lastName: "Last name", suffix: "Suffix",
@@ -129,16 +129,18 @@ function pageHeading(eyebrow, title, subtitle, action = "") {
 }
 
 function overviewPage() {
-  const inReview = applications.filter((item) => ["submitted", "under-review"].includes(item.status)).length;
-  const approved = applications.filter((item) => ["approved", "conditional"].includes(item.status)).length;
+  const processing = applications.filter((item) => item.status === "processing").length;
+  const underwriting = applications.filter((item) => item.status === "under-review").length;
+  const closing = applications.filter((item) => ["approved", "conditional"].includes(item.status)).length;
   const funded = applications.filter((item) => item.status === "funded").length;
   const recent = [...applications].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
   const action = `<button class="button button-primary" type="button" data-action="new"><span class="button-icon">＋</span> New application</button>`;
   return `${pageHeading(new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date()).toUpperCase(), "Good morning", "Here's your personal lending workspace.", action)}
     <section class="metrics-grid" aria-label="Application summary">
       <article class="metric-card"><div class="metric-top">Total applications<span class="metric-icon">▤</span></div><div class="metric-value">${applications.length}</div><div class="metric-foot">All applications in this session</div></article>
-      <article class="metric-card"><div class="metric-top">Awaiting review<span class="metric-icon">◷</span></div><div class="metric-value">${inReview}</div><div class="metric-foot">Submitted and in review</div></article>
-      <article class="metric-card"><div class="metric-top">Approved<span class="metric-icon">✓</span></div><div class="metric-value">${approved}</div><div class="metric-foot">Ready for applicant acceptance</div></article>
+      <article class="metric-card"><div class="metric-top">Processing<span class="metric-icon">◷</span></div><div class="metric-value">${processing}</div><div class="metric-foot">Application setup and document checks</div></article>
+      <article class="metric-card"><div class="metric-top">Underwriting<span class="metric-icon">◈</span></div><div class="metric-value">${underwriting}</div><div class="metric-foot">Awaiting manual underwriting outcome</div></article>
+      <article class="metric-card"><div class="metric-top">Closing<span class="metric-icon">▣</span></div><div class="metric-value">${closing}</div><div class="metric-foot">Approved; preparing agreement</div></article>
       <article class="metric-card"><div class="metric-top">Funded<span class="metric-icon">↗</span></div><div class="metric-value">${funded}</div><div class="metric-foot">Marked funded in this session</div></article>
     </section>
     <section class="panel">
@@ -146,9 +148,9 @@ function overviewPage() {
       ${tableMarkup(recent)}
     </section>
     <div class="split-panels">
-      <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Getting started</h2><p class="panel-caption">From first details to funding</p></div></div>
-        <div class="quick-start"><span class="quick-icon">＋</span><div><h3>Start an application</h3><p>Capture an applicant's contact, financial and loan request details, then submit it to your review queue.</p></div></div>
-        <div class="workflow-note"><strong>Workflow:</strong> Intake → manual review → offer acceptance → funding. No credit decision is made automatically.</div>
+      <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Retail lending workflow</h2><p class="panel-caption">Move each case through the lending lifecycle</p></div></div>
+        <div class="quick-start"><span class="quick-icon">↗</span><div><h3>Application to funding</h3><p>Application &amp; pre-qualification → Processing → Underwriting → Closing → Funding.</p></div></div>
+        <div class="workflow-note"><strong>Human review:</strong> Pre-qualification and credit decisions are not automated by this prototype. Complete required checks in accordance with lender policy.</div>
       </section>
       <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Activity</h2><p class="panel-caption">Latest actions in this workspace</p></div></div>
         <div class="activity-list">${recent.length ? recent.slice(0, 3).map((item) => `<div class="activity-item"><span class="activity-dot"></span><div class="activity-copy"><strong>${escapeHtml(fullName(item))}</strong> application ${escapeHtml(statusLabels[item.status].toLowerCase())}<div class="activity-time">${displayDate(item.createdAt)}</div></div></div>`).join("") : `<div class="activity-item"><span class="activity-dot"></span><div class="activity-copy">Your application activity will appear here.</div></div>`}</div>
@@ -160,9 +162,9 @@ function listPage(filter = "all") {
   const filtered = applications.filter((item) => filter === "all" || item.status === filter)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const action = `<button class="button button-primary" type="button" data-action="new"><span class="button-icon">＋</span> New application</button>`;
-  return `${pageHeading("LOAN WORKSPACE", "Applications", "Manage applicant intake and follow each case through its lifecycle.", action)}
+  return `${pageHeading("RETAIL LENDING", "Application & pre-qualification", "Capture a loan request and track the case from initial application into processing.", action)}
     <section class="panel">
-      <div class="panel-header"><div><h2 class="panel-title">All applications</h2><p class="panel-caption">${applications.length} application${applications.length === 1 ? "" : "s"} in this session</p></div>
+      <div class="panel-header"><div><h2 class="panel-title">Application register</h2><p class="panel-caption">${applications.length} application${applications.length === 1 ? "" : "s"} in this session</p></div>
         <div class="filter-bar"><label class="sr-only" for="application-search">Search applications</label><input class="search-input" type="search" id="application-search" placeholder="Search applicant or ID"><label class="sr-only" for="status-filter">Filter by status</label><select id="status-filter" class="filter-select">${optionList([["all", "All statuses"], ...Object.entries(statusLabels).map(([value, label]) => [value, label])], filter)}</select></div>
       </div>
       <div id="applications-table">${tableMarkup(filtered, "No applications match these filters.")}</div>
@@ -171,7 +173,7 @@ function listPage(filter = "all") {
 }
 
 function applicationFormPage() {
-  return `${pageHeading("NEW APPLICATION", "Start an application", "Collect the information needed to begin a personal loan application.")}
+  return `${pageHeading("APPLICATION & PRE-QUALIFICATION", "Start an application", "Capture the applicant's initial loan request and information for a preliminary, non-binding review.")}
     <form id="application-form" novalidate>
       <div class="form-layout">
         <section class="form-card">
@@ -183,7 +185,7 @@ function applicationFormPage() {
         <aside class="form-aside">
           <section class="aside-card"><h3>What you'll need</h3><ul class="aside-list"><li><span class="aside-check">✓</span> Applicant contact and residential details</li><li><span class="aside-check">✓</span> Income, housing and monthly obligations</li><li><span class="aside-check">✓</span> Loan purpose, amount and preferred term</li></ul></section>
           <section class="aside-card privacy-card"><h3><span class="privacy-lock">◆</span> Demo data notice</h3><p>This prototype does not save or transmit application data. Do not enter real personal or financial information.</p></section>
-          <section class="aside-card"><h3>Review is manual</h3><p>Submitting creates a case for human review. This demo does not pull credit reports, verify identity or income, or make lending decisions.</p></section>
+          <section class="aside-card"><h3>Pre-qualification is not automated</h3><p>This intake captures information for a preliminary review only. It does not estimate eligibility or loan terms. Submitting routes the case to processing.</p></section>
         </aside>
       </div>
     </form>`;
@@ -292,7 +294,7 @@ function reviewFormStep() {
         ${reviewItem("Monthly debt payments", money(data.monthlyDebt))}${reviewItem("Employer", data.employer)}
       </div>
     </div>
-    <div class="notice">By submitting, you confirm these details and authorizations are recorded for this demo. Submission creates a case for manual review; it is not a credit decision or loan offer.</div>
+    <div class="notice">By submitting, you confirm these details and authorizations are recorded for this demo. This is not a pre-qualification result, credit decision, or loan offer. Submission routes the case to processing.</div>
     <div class="form-footer"><span class="form-footer-note">All data remains in this browser tab's memory.</span><span class="button-group"><button class="button button-secondary" type="button" data-action="back">Back</button><button class="button button-primary" type="submit">Submit application <span aria-hidden="true">→</span></button></span></div>`;
 }
 
@@ -390,9 +392,10 @@ function getCurrentApplication() {
 
 function workflowTimeline(record) {
   const steps = [
-    ["Application submitted", record.createdAt],
-    ["Manual underwriting review", record.reviewedAt],
-    ["Offer accepted", record.acceptedAt],
+    ["Application & pre-qualification", record.createdAt],
+    ["Processing complete", record.processedAt],
+    ["Underwriting decision", record.reviewedAt],
+    ["Closing complete", record.acceptedAt],
     ["Funding recorded", record.fundedAt]
   ];
   return `<div class="timeline">${steps.map(([label, date], index) => `<div class="timeline-item ${date ? "complete" : ""}"><span class="timeline-mark"></span><div class="timeline-copy"><strong>${label}</strong><small>${date ? displayDate(date) : index === 0 ? "Submitted" : "Pending"}</small></div></div>`).join("")}</div>`;
@@ -402,8 +405,12 @@ function detailPage(record) {
   if (!record) return `${pageHeading("APPLICATION", "Application not found", "It may have been cleared when this page was refreshed.")}<button class="button button-secondary" type="button" data-view="applications">Back to applications</button>`;
   const status = statusLabels[record.status];
   let workflowAction = "";
-  if (record.status === "submitted") {
-    workflowAction = `<div class="review-action"><h3>Begin review</h3><p>Move this case into the manual underwriting queue.</p><button class="button button-primary" type="button" data-action="start-review">Start review</button></div>`;
+  if (record.status === "processing") {
+    workflowAction = `<div class="review-action"><h3>Processing checklist</h3><p>Complete the lender's required application, identity, income, and documentation checks before routing to underwriting. This prototype does not perform those checks.</p>
+      <label class="check-row" style="margin-top:10px"><input type="checkbox" id="processing-application"><span>Application information reviewed</span></label>
+      <label class="check-row" style="margin-top:10px"><input type="checkbox" id="processing-identity"><span>Identity and supporting documents reviewed</span></label>
+      <label class="check-row" style="margin-top:10px"><input type="checkbox" id="processing-income"><span>Income and obligations reviewed</span></label>
+      <button class="button button-primary" type="button" data-action="complete-processing">Complete processing &amp; send to underwriting</button></div>`;
   } else if (record.status === "under-review") {
     workflowAction = `<div class="review-action"><h3>Record a review decision</h3><p>Choose an outcome in accordance with your lending policies. This demo does not determine eligibility.</p>
       <label class="sr-only" for="decision-reason">Decision notes or reason</label><textarea id="decision-reason" placeholder="Decision notes or adverse action reason"></textarea>
@@ -455,15 +462,26 @@ function sectionPage(status, title, subtitle, empty) {
 }
 
 function render() {
-  const pageNames = { overview: "Overview", applications: "Applications", underwriting: "Underwriting", funding: "Funding", new: "New application", detail: "Application details" };
+  const pageNames = {
+    overview: "Overview",
+    applications: "Application & pre-qualification",
+    processing: "Processing",
+    underwriting: "Underwriting",
+    closing: "Closing",
+    funding: "Funding",
+    new: "New application",
+    detail: "Application details"
+  };
   document.getElementById("breadcrumb-current").textContent = pageNames[currentView] ?? "Overview";
   document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === (currentView === "detail" || currentView === "new" ? "applications" : currentView)));
   updateNavCount();
   if (currentView === "overview") appRoot.innerHTML = overviewPage();
   else if (currentView === "applications") appRoot.innerHTML = listPage();
   else if (currentView === "new") appRoot.innerHTML = applicationFormPage();
-  else if (currentView === "underwriting") appRoot.innerHTML = sectionPage(["submitted", "under-review"], "Underwriting", "Review submitted applications and record a manual outcome.", "No applications are waiting for underwriting review.");
-  else if (currentView === "funding") appRoot.innerHTML = sectionPage(["approved", "conditional", "accepted"], "Funding", "Track approved applications through offer acceptance and funding.", "No approved applications are ready for funding.");
+  else if (currentView === "processing") appRoot.innerHTML = sectionPage(["processing"], "Processing", "Review application completeness and supporting documents before underwriting.", "No applications are waiting in processing.");
+  else if (currentView === "underwriting") appRoot.innerHTML = sectionPage(["under-review"], "Underwriting", "Review the processed application and record a manual underwriting outcome.", "No applications are waiting in underwriting.");
+  else if (currentView === "closing") appRoot.innerHTML = sectionPage(["approved", "conditional"], "Closing", "Prepare disclosures and agreements, confirm conditions, and record applicant acceptance.", "No approved applications are waiting for closing.");
+  else if (currentView === "funding") appRoot.innerHTML = sectionPage(["accepted", "funded"], "Funding", "Track accepted agreements through verified funding.", "No accepted applications are waiting for funding.");
   else if (currentView === "detail") appRoot.innerHTML = detailPage(getCurrentApplication());
 }
 
@@ -472,8 +490,9 @@ function submitApplication() {
   const record = {
     ...data,
     id: `PL-${new Date().getFullYear()}-${String(applications.length + 1).padStart(4, "0")}`,
-    status: "submitted",
+    status: "processing",
     createdAt: todayIso(),
+    processedAt: "",
     reviewedAt: "",
     acceptedAt: "",
     fundedAt: "",
@@ -485,7 +504,7 @@ function submitApplication() {
   currentView = "detail";
   currentApplicationId = record.id;
   render();
-  showToast(`Application ${record.id} submitted for manual review.`);
+  showToast(`Application ${record.id} submitted to the processing queue.`);
 }
 
 function recordDecision(outcome) {
@@ -581,6 +600,20 @@ document.addEventListener("click", (event) => {
     formStep -= 1;
     render();
     restoreFormValues(formDraft);
+  }
+  if (action === "complete-processing") {
+    const record = getCurrentApplication();
+    const checks = ["processing-application", "processing-identity", "processing-income"];
+    if (!checks.every((id) => document.getElementById(id)?.checked)) {
+      showToast("Complete all processing checklist items before routing to underwriting.", true);
+      return;
+    }
+    if (record) {
+      record.status = "under-review";
+      record.processedAt = todayIso();
+      render();
+      showToast("Processing complete. Application moved to underwriting.");
+    }
   }
   if (action === "start-review") {
     const record = getCurrentApplication();
