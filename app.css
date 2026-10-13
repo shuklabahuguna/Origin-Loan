@@ -137,14 +137,14 @@ h1 { margin: 7px 0 7px; font-size: clamp(24px, 3vw, 31px); font-weight: 700; let
 .filter-summary { padding: 10px 17px; border-top: 1px solid #eff1ee; color: #99a29c; font-size: 9px; }
 .form-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: start; gap: 16px; }
 .form-card { overflow: hidden; }
-.form-progress { display: flex; align-items: center; gap: 0; padding: 17px 22px 14px; border-bottom: 1px solid var(--line); background: #fdfefd; }
-.progress-step { display: flex; align-items: center; gap: 7px; color: #a0a9a3; font-size: 9px; font-weight: 600; white-space: nowrap; }
+.form-progress { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 17px 22px 14px; border-bottom: 1px solid var(--line); background: #fdfefd; scrollbar-width: thin; }
+.progress-step { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; color: #a0a9a3; font-size: 9px; font-weight: 600; white-space: nowrap; }
 .progress-number { display: grid; place-items: center; width: 21px; height: 21px; border: 1px solid #dfe5df; border-radius: 50%; color: #89938d; font-size: 9px; }
 .progress-step.active { color: var(--green-dark); }
 .progress-step.active .progress-number { border-color: var(--green); background: var(--green); color: #fff; }
 .progress-step.done { color: #547660; }
 .progress-step.done .progress-number { border-color: #dceade; background: #eaf3eb; color: var(--green); }
-.progress-line { width: 35px; height: 1px; flex: 1; min-width: 10px; margin: 0 9px; background: #e3e8e3; }
+.progress-line { width: 22px; height: 1px; flex: 0 0 22px; margin: 0 8px; background: #e3e8e3; }
 .form-body { padding: 21px 23px 24px; }
 .form-section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
 .form-section-head h2 { margin: 0; font-size: 14px; letter-spacing: -.35px; }
@@ -173,6 +173,8 @@ h1 { margin: 7px 0 7px; font-size: clamp(24px, 3vw, 31px); font-weight: 700; let
 .radio-card:has(input:checked) { border-color: #94b89b; background: #f2f8f2; color: #365b41; }
 .radio-card input { accent-color: var(--green); }
 .check-list { display: grid; gap: 10px; }
+.declaration-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f2ef; }
+.declaration-question { color: #56645b; font-size: 9px; line-height: 1.5; }
 .check-row { display: flex; align-items: flex-start; gap: 9px; color: #627067; font-size: 9px; line-height: 1.5; }
 .check-row input { margin: 2px 0 0; accent-color: var(--green); }
 .check-row strong { color: #3e4e45; font-weight: 600; }
@@ -284,7 +286,7 @@ h1 { margin: 7px 0 7px; font-size: clamp(24px, 3vw, 31px); font-weight: 700; let
   .form-progress { padding: 14px 11px 12px; }
   .progress-step { gap: 4px; font-size: 0; }
   .progress-step span:last-child { display: none; }
-  .progress-line { margin: 0 6px; }
+  .progress-line { width: 15px; flex-basis: 15px; margin: 0 6px; }
   .form-body { padding: 18px 14px; }
   .form-grid { gap: 11px 9px; }
   .field label { font-size: 8px; }

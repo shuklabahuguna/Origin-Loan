@@ -6,6 +6,16 @@ let currentView = "overview";
 let currentApplicationId = null;
 let formStep = 1;
 let formDraft = {};
+const formSteps = [
+  "Borrower information",
+  "Loan & property",
+  "Employment & income",
+  "Assets & liabilities",
+  "Real estate",
+  "Declarations",
+  "Acknowledgments & demographics",
+  "Originator & review"
+];
 let toastTimer;
 
 const states = [
@@ -22,13 +32,86 @@ const states = [
   ["WI", "Wisconsin"], ["WY", "Wyoming"]
 ];
 const purposes = [
-  ["", "Select a purpose"], ["debt_consolidation", "Debt consolidation"], ["home_improvement", "Home improvement"],
-  ["major_purchase", "Major purchase"], ["medical", "Medical expenses"], ["vehicle", "Vehicle expenses"],
-  ["education", "Education"], ["other", "Other"]
+  ["", "Select a purpose"], ["purchase", "Purchase"], ["refinance", "Refinance"],
+  ["construction", "Construction"], ["other", "Other"]
 ];
 const employmentTypes = [
   ["", "Select employment status"], ["employed", "Employed"], ["self_employed", "Self-employed"],
-  ["retired", "Retired"], ["unemployed", "Unemployed"], ["other", "Other"]
+  ["retired", "Retired"], ["not_employed", "Not employed"], ["other", "Other"]
+];
+const declarations = [
+  ["occupy", "Will you occupy the property as your primary residence?"],
+  ["ownership", "Have you had an ownership interest in another property in the last three years?"],
+  ["relationship", "Are you borrowing money for this transaction or receiving funds from another party, such as the seller or real estate agent, that are not disclosed on this application?"],
+  ["otherMortgage", "Have you or will you apply for another mortgage loan on or before closing that is not disclosed on this application?"],
+  ["newCredit", "Are there any new credit accounts or new debts not disclosed on this application?"],
+  ["priorityLien", "Will this property be subject to any lien that could take priority over the first mortgage lien, such as a clean-energy assessment?"],
+  ["coMaker", "Are you a co-maker or guarantor on any undisclosed note?"],
+  ["judgments", "Are there any outstanding judgments against you?"],
+  ["federalDebt", "Are you currently delinquent or in default on a federal debt?"],
+  ["lawsuit", "Are you a party to a lawsuit in which you may have personal financial liability?"],
+  ["conveyTitle", "Have you conveyed title to any property in lieu of foreclosure in the past seven years?"],
+  ["shortSale", "Within the past seven years, have you completed a pre-foreclosure sale or short sale?"],
+  ["foreclosure", "Within the past seven years, has any property been foreclosed upon?"],
+  ["bankruptcy", "Have you declared bankruptcy within the past seven years?"]
+];
+const citizenshipTypes = [
+  ["", "Select status"], ["us_citizen", "U.S. Citizen"], ["permanent_resident", "Permanent Resident Alien"],
+  ["non_permanent_resident", "Non-Permanent Resident Alien"]
+];
+const maritalStatuses = [
+  ["", "Select status"], ["married", "Married"], ["separated", "Separated"], ["unmarried", "Unmarried"]
+];
+const propertyTypes = [
+  ["", "Select property type"], ["single_family", "Single Family"], ["condo", "Condominium"],
+  ["townhouse", "Townhouse"], ["two_to_four", "2–4 Unit Property"], ["manufactured", "Manufactured Home"],
+  ["cooperative", "Cooperative"], ["other", "Other"]
+];
+const occupancyTypes = [
+  ["", "Select occupancy"], ["primary", "Primary Residence"], ["second_home", "Second Home"],
+  ["investment", "Investment Property"]
+];
+const loanPrograms = [
+  ["", "Select program"], ["conventional", "Conventional"], ["fha", "FHA"],
+  ["va", "VA"], ["usda", "USDA"], ["other", "Other"]
+];
+const yesNoOptions = [["", "Select"], ["no", "No"], ["yes", "Yes"]];
+const residenceTypes = [["", "Select"], ["own", "Own"], ["rent", "Rent"], ["living_rent_free", "Living rent-free"]];
+const militaryStatuses = [
+  ["", "Select status"], ["currently_serving", "Currently serving on active duty"],
+  ["retired", "Retired, discharged, or separated from service"],
+  ["surviving_spouse", "Surviving spouse"]
+];
+const ethnicityOptions = [
+  ["hispanic", "Hispanic or Latino"], ["not_hispanic", "Not Hispanic or Latino"], ["mexican", "Mexican"], ["puerto_rican", "Puerto Rican"],
+  ["cuban", "Cuban"], ["other_hispanic", "Other Hispanic or Latino"]
+];
+const raceOptions = [
+  ["american_indian", "American Indian or Alaska Native"], ["asian", "Asian"],
+  ["asian_indian", "Asian Indian"], ["chinese", "Chinese"], ["filipino", "Filipino"],
+  ["japanese", "Japanese"], ["korean", "Korean"], ["vietnamese", "Vietnamese"],
+  ["other_asian", "Other Asian"], ["black", "Black or African American"],
+  ["native_hawaiian", "Native Hawaiian or Other Pacific Islander"], ["native_hawaiian_race", "Native Hawaiian"],
+  ["guamanian", "Guamanian or Chamorro"], ["samoan", "Samoan"], ["other_pacific", "Other Pacific Islander"],
+  ["white", "White"]
+];
+const accountTypes = [
+  ["checking", "Checking"], ["savings", "Savings"], ["money_market", "Money market"],
+  ["cd", "Certificate of deposit"], ["brokerage", "Brokerage"], ["retirement", "Retirement"],
+  ["gift_funds", "Gift funds"], ["other_asset", "Other"]
+];
+const liabilityTypes = [
+  ["credit_card", "Credit card"], ["auto_loan", "Auto loan"], ["student_loan", "Student loan"],
+  ["personal_loan", "Personal loan"], ["lease", "Lease"], ["other_debt", "Other"]
+];
+const assetItems = [
+  ["checking", "Checking accounts"], ["savings", "Savings and money market accounts"],
+  ["retirement", "Retirement accounts"], ["brokerage", "Stocks, bonds, and brokerage accounts"],
+  ["cash", "Cash on hand"], ["otherAssets", "Other assets"]
+];
+const liabilityItems = [
+  ["creditCards", "Credit cards and revolving accounts"], ["installment", "Installment loans"],
+  ["leases", "Leases"], ["studentLoans", "Student loans"], ["otherLiabilities", "Other liabilities"]
 ];
 const statusLabels = {
   processing: "Processing", "under-review": "In underwriting", conditional: "Conditional approval",
@@ -37,12 +120,28 @@ const statusLabels = {
 const fieldNames = {
   firstName: "First name", middleName: "Middle name", lastName: "Last name", suffix: "Suffix",
   dateOfBirth: "Date of birth", email: "Email address", phone: "Phone number",
-  address1: "Street address", address2: "Apartment or unit", city: "City", state: "State",
-  zip: "ZIP code", housing: "Housing status", monthlyHousing: "Monthly housing cost",
-  employment: "Employment status", employer: "Employer name", occupation: "Occupation",
-  monthlyIncome: "Monthly gross income", otherIncome: "Other monthly income",
-  monthlyDebt: "Monthly debt payments", loanAmount: "Requested loan amount",
-  loanPurpose: "Loan purpose", loanTerm: "Loan term"
+  loanAmount: "Requested loan amount", loanPurpose: "Loan purpose",
+  propertyAddress: "Property address", propertyCity: "Property city", propertyState: "Property state",
+  propertyZip: "Property ZIP code", propertyValue: "Estimated property value",
+  occupancy: "Occupancy type", propertyType: "Property type", units: "Number of units",
+  employment: "Employment status", employer: "Employer name", occupation: "Position or occupation",
+  monthlyIncome: "Monthly income", citizenship: "Citizenship status", maritalStatus: "Marital status",
+  borrowerAddress: "Current home address", borrowerCity: "Current city", borrowerState: "Current state",
+  borrowerZip: "Current ZIP code", residenceType: "Residence type", yearsAtAddress: "Years at address",
+  loanProgram: "Loan program", loanTerm: "Loan term", purchasePrice: "Purchase price",
+  declarations: "Declarations", demographics: "Demographic response", originatorName: "Loan originator name",
+  originatorNmls: "Loan originator NMLSR ID", originatorOrganization: "Organization name",
+  organizationNmls: "Organization NMLSR ID", originatorEmail: "Originator email",
+  originatorPhone: "Originator phone", originatorStreet: "Originator street address",
+  originatorCity: "Originator city", originatorState: "Originator state",
+  originatorZip: "Originator ZIP code", formerAddress: "Former street address", formerCity: "Former city",
+  formerState: "Former state", formerZip: "Former ZIP code", formerResidenceType: "Former residence type",
+  formerYears: "Years at former address", declarationDetails: "Declaration details",
+  ownsOtherProperty: "Other real estate ownership", otherPropertyStatus: "Other property disposition",
+  otherPropertyAddress: "Other property address", otherPropertyCity: "Other property city",
+  otherPropertyState: "Other property state", otherPropertyZip: "Other property ZIP code",
+  otherPropertyValue: "Other property value", otherPropertyMortgage: "Other property mortgage balance",
+  otherPropertyPayment: "Other property mortgage payment", accuracyAcknowledgment: "Accuracy acknowledgment"
 };
 
 function escapeHtml(value) {
@@ -119,7 +218,7 @@ function tableMarkup(records, emptyText = "Applications appear here after an app
     return `<div class="empty-state table-empty"><p>${escapeHtml(emptyText)}</p></div>`;
   }
   return `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Applicant</th><th>Application ID</th><th>Requested</th><th>Purpose</th><th>Status</th><th>Received</th><th></th></tr></thead>
+    <thead><tr><th>Borrower</th><th>Application ID</th><th>Requested</th><th>Purpose</th><th>Status</th><th>Received</th><th></th></tr></thead>
     <tbody>${records.map(applicationRow).join("")}</tbody>
   </table></div>`;
 }
@@ -135,7 +234,7 @@ function overviewPage() {
   const funded = applications.filter((item) => item.status === "funded").length;
   const recent = [...applications].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
   const action = `<button class="button button-primary" type="button" data-action="new"><span class="button-icon">＋</span> New application</button>`;
-  return `${pageHeading(new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date()).toUpperCase(), "Good morning", "Here's your personal lending workspace.", action)}
+  return `${pageHeading(new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date()).toUpperCase(), "Good morning", "Here's your residential mortgage origination workspace.", action)}
     <section class="metrics-grid" aria-label="Application summary">
       <article class="metric-card"><div class="metric-top">Total applications<span class="metric-icon">▤</span></div><div class="metric-value">${applications.length}</div><div class="metric-foot">All applications in this session</div></article>
       <article class="metric-card"><div class="metric-top">Processing<span class="metric-icon">◷</span></div><div class="metric-value">${processing}</div><div class="metric-foot">Application setup and document checks</div></article>
@@ -148,9 +247,9 @@ function overviewPage() {
       ${tableMarkup(recent)}
     </section>
     <div class="split-panels">
-      <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Retail lending workflow</h2><p class="panel-caption">Move each case through the lending lifecycle</p></div></div>
+      <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Mortgage origination workflow</h2><p class="panel-caption">Move each case through the lending lifecycle</p></div></div>
         <div class="quick-start"><span class="quick-icon">↗</span><div><h3>Application to funding</h3><p>Application &amp; pre-qualification → Processing → Underwriting → Closing → Funding.</p></div></div>
-        <div class="workflow-note"><strong>Human review:</strong> Pre-qualification and credit decisions are not automated by this prototype. Complete required checks in accordance with lender policy.</div>
+        <div class="workflow-note"><strong>Human review:</strong> Pre-qualification and underwriting decisions are not automated by this prototype. Complete required checks in accordance with lender policy.</div>
       </section>
       <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Activity</h2><p class="panel-caption">Latest actions in this workspace</p></div></div>
         <div class="activity-list">${recent.length ? recent.slice(0, 3).map((item) => `<div class="activity-item"><span class="activity-dot"></span><div class="activity-copy"><strong>${escapeHtml(fullName(item))}</strong> application ${escapeHtml(statusLabels[item.status].toLowerCase())}<div class="activity-time">${displayDate(item.createdAt)}</div></div></div>`).join("") : `<div class="activity-item"><span class="activity-dot"></span><div class="activity-copy">Your application activity will appear here.</div></div>`}</div>
@@ -162,7 +261,7 @@ function listPage(filter = "all") {
   const filtered = applications.filter((item) => filter === "all" || item.status === filter)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const action = `<button class="button button-primary" type="button" data-action="new"><span class="button-icon">＋</span> New application</button>`;
-  return `${pageHeading("RETAIL LENDING", "Application & pre-qualification", "Capture a loan request and track the case from initial application into processing.", action)}
+  return `${pageHeading("MORTGAGE ORIGINATION", "Application & pre-qualification", "Capture an initial residential mortgage request and track its progress through origination.", action)}
     <section class="panel">
       <div class="panel-header"><div><h2 class="panel-title">Application register</h2><p class="panel-caption">${applications.length} application${applications.length === 1 ? "" : "s"} in this session</p></div>
         <div class="filter-bar"><label class="sr-only" for="application-search">Search applications</label><input class="search-input" type="search" id="application-search" placeholder="Search applicant or ID"><label class="sr-only" for="status-filter">Filter by status</label><select id="status-filter" class="filter-select">${optionList([["all", "All statuses"], ...Object.entries(statusLabels).map(([value, label]) => [value, label])], filter)}</select></div>
@@ -173,22 +272,33 @@ function listPage(filter = "all") {
 }
 
 function applicationFormPage() {
-  return `${pageHeading("APPLICATION & PRE-QUALIFICATION", "Start an application", "Capture the applicant's initial loan request and information for a preliminary, non-binding review.")}
+  return `${pageHeading("URLA APPLICATION", "Start a mortgage application", "Capture borrower and transaction information using a URLA-aligned intake flow.")}
     <form id="application-form" novalidate>
       <div class="form-layout">
         <section class="form-card">
           <div class="form-progress" aria-label="Application form progress">
-            ${[["1", "Applicant"], ["2", "Loan & finances"], ["3", "Review"]].map(([number, label], index) => `<div class="progress-step ${formStep === index + 1 ? "active" : formStep > index + 1 ? "done" : ""}"><span class="progress-number">${formStep > index + 1 ? "✓" : number}</span><span>${label}</span></div>${index < 2 ? `<span class="progress-line"></span>` : ""}`).join("")}
+            ${formSteps.map((label, index) => `<div class="progress-step ${formStep === index + 1 ? "active" : formStep > index + 1 ? "done" : ""}"${formStep === index + 1 ? ' aria-current="step"' : ""}><span class="progress-number">${formStep > index + 1 ? "✓" : index + 1}</span><span>${escapeHtml(label)}</span></div>${index < formSteps.length - 1 ? `<span class="progress-line"></span>` : ""}`).join("")}
           </div>
-          <div class="form-body">${formStep === 1 ? applicantFormStep() : formStep === 2 ? financeFormStep() : reviewFormStep()}</div>
+          <div class="form-body">${applicationStep()}</div>
         </section>
         <aside class="form-aside">
-          <section class="aside-card"><h3>What you'll need</h3><ul class="aside-list"><li><span class="aside-check">✓</span> Applicant contact and residential details</li><li><span class="aside-check">✓</span> Income, housing and monthly obligations</li><li><span class="aside-check">✓</span> Loan purpose, amount and preferred term</li></ul></section>
-          <section class="aside-card privacy-card"><h3><span class="privacy-lock">◆</span> Demo data notice</h3><p>This prototype does not save or transmit application data. Do not enter real personal or financial information.</p></section>
-          <section class="aside-card"><h3>Pre-qualification is not automated</h3><p>This intake captures information for a preliminary review only. It does not estimate eligibility or loan terms. Submitting routes the case to processing.</p></section>
+          <section class="aside-card"><h3>URLA borrower sections</h3><ul class="aside-list"><li><span class="aside-check">✓</span> Borrower, employment, income, assets and liabilities</li><li><span class="aside-check">✓</span> Real estate, loan, property and declarations</li><li><span class="aside-check">✓</span> Acknowledgments, military service, demographics and originator</li></ul></section>
+          <section class="aside-card privacy-card"><h3><span class="privacy-lock">◆</span> Demo data notice</h3><p>This prototype does not save or transmit application data. Do not enter real personal or financial information or real identifiers.</p></section>
+          <section class="aside-card"><h3>URLA alignment, not certification</h3><p>Some URLA data is simplified or omitted, including SSN, additional borrowers, itemized account details, signatures and full lender-use fields. Production use needs the current official form and lender compliance review.</p></section>
         </aside>
       </div>
     </form>`;
+}
+
+function applicationStep() {
+  if (formStep === 1) return applicantFormStep();
+  if (formStep === 2) return financeFormStep();
+  if (formStep === 3) return incomeFormStep();
+  if (formStep === 4) return assetLiabilityFormStep();
+  if (formStep === 5) return realEstateFormStep();
+  if (formStep === 6) return declarationFormStep();
+  if (formStep === 7) return acknowledgmentsDemographicsStep();
+  return originatorFormStep();
 }
 
 function field(name, label, type = "text", options = {}) {
@@ -199,6 +309,8 @@ function field(name, label, type = "text", options = {}) {
   let control;
   if (type === "select") {
     control = `<select ${common}>${optionList(options.items ?? [], value)}</select>`;
+  } else if (type === "textarea") {
+    control = `<textarea ${common} placeholder="${escapeHtml(placeholder)}">${escapeHtml(value)}</textarea>`;
   } else {
     control = `<input type="${type}" ${common} value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}"${type === "number" ? ` min="${options.min ?? 0}" max="${options.max ?? 1000000}" step="${options.step ?? 1}"` : ""}${type === "date" ? ` max="${todayIso()}"` : ""}>`;
   }
@@ -207,57 +319,211 @@ function field(name, label, type = "text", options = {}) {
 
 function applicantFormStep() {
   const old = readFormValues();
-  return `<div class="form-section-head"><h2>Applicant information</h2><span class="required-note"><span class="required">*</span> Required field</span></div>
+  return `<div class="form-section-head"><h2>1. Borrower information</h2><span class="required-note"><span class="required">*</span> Required field</span></div>
+    <div class="notice warning">URLA-aligned demo: do not enter real Social Security numbers or other sensitive identifiers. SSN and identity-document capture are intentionally omitted in this browser-only prototype.</div>
     <div class="form-grid">
       ${field("firstName", "Legal first name", "text", { required: true, placeholder: "As shown on identification", value: old.firstName })}
       ${field("middleName", "Middle name", "text", { placeholder: "Optional", value: old.middleName })}
       ${field("lastName", "Legal last name", "text", { required: true, placeholder: "As shown on identification", value: old.lastName })}
       ${field("suffix", "Suffix", "select", { items: [["", "None"], ["Jr.", "Jr."], ["Sr.", "Sr."], ["II", "II"], ["III", "III"], ["IV", "IV"]], value: old.suffix })}
-      ${field("dateOfBirth", "Date of birth", "date", { required: true, value: old.dateOfBirth, hint: "Applicant must be at least 18 years old." })}
+      ${field("dateOfBirth", "Date of birth", "date", { required: true, value: old.dateOfBirth, hint: "Eligibility and legal capacity must be evaluated under applicable law and lender policy." })}
+      ${field("citizenship", "Citizenship", "select", { required: true, items: citizenshipTypes, value: old.citizenship })}
+      ${field("maritalStatus", "Marital status", "select", { required: true, items: maritalStatuses, value: old.maritalStatus })}
+      ${field("spouseFirstName", "Spouse first name (if applicable)", "text", { value: old.spouseFirstName })}
+      ${field("spouseLastName", "Spouse last name (if applicable)", "text", { value: old.spouseLastName })}
+      ${field("dependentsCount", "Number of dependents", "number", { min: 0, max: 20, value: old.dependentsCount, hint: "Include ages in the next field if applicable." })}
+      ${field("dependentsAges", "Dependents' ages", "text", { placeholder: "e.g., 4, 9", value: old.dependentsAges })}
       ${field("email", "Email address", "email", { required: true, placeholder: "name@example.com", value: old.email })}
       ${field("phone", "Phone number", "tel", { required: true, placeholder: "(555) 555-0100", value: old.phone, attrs: 'autocomplete="tel"' })}
     </div>
     <div class="form-divider"></div>
-    <div class="form-section-head"><h2>Residential address</h2></div>
+    <div class="form-section-head"><h2>Current residence</h2></div>
     <div class="form-grid">
-      ${field("address1", "Street address", "text", { required: true, placeholder: "Street address", value: old.address1, full: true })}
-      ${field("address2", "Apartment, suite, or unit", "text", { placeholder: "Optional", value: old.address2, full: true })}
-      ${field("city", "City", "text", { required: true, placeholder: "City", value: old.city })}
-      ${field("state", "State", "select", { required: true, items: states, value: old.state })}
-      ${field("zip", "ZIP code", "text", { required: true, placeholder: "12345", value: old.zip, attrs: 'inputmode="numeric" autocomplete="postal-code" maxlength="10"' })}
+      ${field("borrowerAddress", "Street address", "text", { required: true, placeholder: "Street address", value: old.borrowerAddress, full: true })}
+      ${field("borrowerAddress2", "Apartment, suite, or unit", "text", { placeholder: "Optional", value: old.borrowerAddress2, full: true })}
+      ${field("borrowerCity", "City", "text", { required: true, placeholder: "City", value: old.borrowerCity })}
+      ${field("borrowerState", "State", "select", { required: true, items: states, value: old.borrowerState })}
+      ${field("borrowerZip", "ZIP code", "text", { required: true, placeholder: "12345", value: old.borrowerZip, attrs: 'inputmode="numeric" autocomplete="postal-code" maxlength="10"' })}
+      ${field("residenceType", "Housing status", "select", { required: true, items: residenceTypes, value: old.residenceType })}
+      ${field("yearsAtAddress", "Years at address", "number", { required: true, min: 0, max: 150, value: old.yearsAtAddress })}
     </div>
-    <div class="form-footer"><span class="form-footer-note">Applicant details are required to create a case.</span><span class="button-group"><button class="button button-primary" type="button" data-action="next">Continue <span aria-hidden="true">→</span></button></span></div>`;
+    <div class="form-divider"></div>
+    <div class="form-section-head"><h2>Former residence</h2><span class="required-note">Complete if at current address less than 2 years</span></div>
+    <div class="form-grid">
+      ${field("formerAddress", "Former street address", "text", { placeholder: "Street address", value: old.formerAddress, full: true })}
+      ${field("formerCity", "City", "text", { placeholder: "City", value: old.formerCity })}
+      ${field("formerState", "State", "select", { items: states, value: old.formerState })}
+      ${field("formerZip", "ZIP code", "text", { placeholder: "12345", value: old.formerZip, attrs: 'inputmode="numeric" maxlength="10"' })}
+      ${field("formerResidenceType", "Housing status", "select", { items: residenceTypes, value: old.formerResidenceType })}
+      ${field("formerYears", "Years at former address", "number", { min: 0, max: 150, value: old.formerYears })}
+    </div>
+    ${stepFooter("Continue")}`;
 }
 
 function financeFormStep() {
   const old = readFormValues();
-  return `<div class="form-section-head"><h2>Loan request</h2><span class="required-note"><span class="required">*</span> Required field</span></div>
+  return `<div class="form-section-head"><h2>4. Loan and property information</h2><span class="required-note"><span class="required">*</span> Required field</span></div>
     <div class="form-grid">
-      ${field("loanAmount", "Requested amount", "number", { required: true, min: 500, max: 100000, step: 100, value: old.loanAmount, hint: "Enter an amount from $500 to $100,000." })}
       ${field("loanPurpose", "Loan purpose", "select", { required: true, items: purposes, value: old.loanPurpose })}
-      ${field("loanTerm", "Preferred loan term", "select", { required: true, items: [["", "Select a term"], ["12", "12 months"], ["24", "24 months"], ["36", "36 months"], ["48", "48 months"], ["60", "60 months"]], value: old.loanTerm })}
-      <div class="field"><span class="field-label">Housing status <span class="required" aria-hidden="true">*</span></span><div class="radio-options">${[["rent", "Rent"], ["own", "Own"], ["other", "Other"]].map(([value, label]) => `<label class="radio-card"><input type="radio" name="housing" value="${value}"${old.housing === value ? " checked" : ""} required> ${label}</label>`).join("")}</div><p class="field-error" data-error-for="housing"></p></div>
-      ${field("monthlyHousing", "Monthly housing cost", "number", { required: true, min: 0, max: 100000, step: 50, value: old.monthlyHousing, hint: "Rent or mortgage payment.", attrs: 'data-currency="true"' })}
+      ${field("loanAmount", "Loan amount requested", "number", { required: true, min: 1, max: 100000000, step: 100, value: old.loanAmount })}
+      ${field("loanProgram", "Loan program", "select", { required: true, items: loanPrograms, value: old.loanProgram })}
+      ${field("loanTerm", "Loan term (years)", "select", { required: true, items: [["", "Select a term"], ["10", "10 years"], ["15", "15 years"], ["20", "20 years"], ["25", "25 years"], ["30", "30 years"], ["Other", "Other"]], value: old.loanTerm })}
+      ${field("propertyAddress", "Property street address", "text", { required: true, placeholder: "Street address", value: old.propertyAddress, full: true })}
+      ${field("propertyCity", "Property city", "text", { required: true, value: old.propertyCity })}
+      ${field("propertyState", "Property state", "select", { required: true, items: states, value: old.propertyState })}
+      ${field("propertyZip", "Property ZIP code", "text", { required: true, placeholder: "12345", value: old.propertyZip, attrs: 'inputmode="numeric" maxlength="10"' })}
+      ${field("propertyCounty", "County", "text", { value: old.propertyCounty })}
+      ${field("propertyValue", "Estimated property value", "number", { required: true, min: 1, max: 100000000, step: 1000, value: old.propertyValue })}
+      ${field("occupancy", "Intended occupancy", "select", { required: true, items: occupancyTypes, value: old.occupancy })}
+      ${field("propertyType", "Property type", "select", { required: true, items: propertyTypes, value: old.propertyType })}
+      ${field("units", "Number of units", "select", { required: true, items: [["", "Select"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]], value: old.units })}
+      ${field("purchasePrice", "Purchase price (purchase only)", "number", { min: 0, max: 100000000, step: 1000, value: old.purchasePrice })}
+      ${field("downPayment", "Down payment (purchase only)", "number", { min: 0, max: 100000000, step: 1000, value: old.downPayment })}
+      ${field("sourceOfFunds", "Source of down payment / funds", "text", { placeholder: "Savings, gift, sale proceeds, etc.", value: old.sourceOfFunds, full: true })}
+      ${field("refinanceType", "Refinance type", "select", { items: [["", "Select if applicable"], ["rate_term", "Rate/term"], ["cash_out", "Cash-out"], ["streamline", "Streamline"], ["other_refinance", "Other"]], value: old.refinanceType })}
+      ${field("originalPurchaseDate", "Original purchase date (refinance)", "date", { value: old.originalPurchaseDate })}
+      ${field("originalPurchasePrice", "Original purchase price (refinance)", "number", { min: 0, max: 100000000, step: 1000, value: old.originalPurchasePrice })}
+      ${field("existingLienPayoff", "Existing lien payoff", "number", { min: 0, max: 100000000, step: 1000, value: old.existingLienPayoff })}
+      ${field("improvementsCost", "Improvements / renovation cost", "number", { min: 0, max: 100000000, step: 1000, value: old.improvementsCost })}
     </div>
-    <div class="form-divider"></div>
-    <div class="form-section-head"><h2>Income & obligations</h2></div>
+    ${stepFooter("Continue")}`;
+}
+
+function incomeFormStep() {
+  const old = readFormValues();
+  return `<div class="form-section-head"><h2>1. Borrower information — employment and income</h2><span class="required-note">Include each current income source</span></div>
     <div class="form-grid">
       ${field("employment", "Employment status", "select", { required: true, items: employmentTypes, value: old.employment })}
-      ${field("employer", "Employer name", "text", { placeholder: "Optional", value: old.employer })}
-      ${field("occupation", "Occupation", "text", { placeholder: "Optional", value: old.occupation })}
-      ${field("monthlyIncome", "Monthly gross income", "number", { required: true, min: 1, max: 10000000, step: 100, value: old.monthlyIncome, hint: "Before taxes; include recurring income.", attrs: 'data-currency="true"' })}
-      ${field("otherIncome", "Other monthly income", "number", { min: 0, max: 10000000, step: 100, value: old.otherIncome || 0, attrs: 'data-currency="true"' })}
-      ${field("monthlyDebt", "Monthly debt payments", "number", { required: true, min: 0, max: 1000000, step: 50, value: old.monthlyDebt, hint: "Estimated monthly payments on existing debt.", attrs: 'data-currency="true"' })}
+      ${field("employer", "Employer or business name", "text", { placeholder: "Optional if not employed", value: old.employer })}
+      ${field("occupation", "Position or occupation", "text", { placeholder: "Optional", value: old.occupation })}
+      ${field("employerAddress", "Employer street address", "text", { value: old.employerAddress, full: true })}
+      ${field("employerCity", "Employer city", "text", { value: old.employerCity })}
+      ${field("employerState", "Employer state", "select", { items: states, value: old.employerState })}
+      ${field("employerPhone", "Employer phone", "tel", { value: old.employerPhone })}
+      ${field("yearsEmployed", "Years in this position", "number", { min: 0, max: 100, value: old.yearsEmployed })}
+      ${field("monthlyIncome", "Monthly base income", "number", { required: true, min: 1, max: 100000000, step: 100, value: old.monthlyIncome })}
+      ${field("overtimeIncome", "Monthly overtime", "number", { min: 0, max: 100000000, step: 100, value: old.overtimeIncome })}
+      ${field("bonusIncome", "Monthly bonus", "number", { min: 0, max: 100000000, step: 100, value: old.bonusIncome })}
+      ${field("commissionIncome", "Monthly commission", "number", { min: 0, max: 100000000, step: 100, value: old.commissionIncome })}
+      ${field("otherIncome", "Other monthly income", "number", { min: 0, max: 100000000, step: 100, value: old.otherIncome })}
+      ${field("otherIncomeSource", "Other income source", "text", { value: old.otherIncomeSource })}
+    </div>
+    <div class="notice">Include other current and prior employment or self-employment history as required by the current URLA and lender process. This prototype captures one employment record only.</div>
+    ${stepFooter("Continue")}`;
+}
+
+function assetLiabilityFormStep() {
+  const old = readFormValues();
+  const assets = accountTypes.map(([key, label]) => field(`asset_${key}`, `${label} balance`, "number", { min: 0, max: 100000000, step: 100, value: old[`asset_${key}`] })).join("");
+  const liabilities = liabilityTypes.map(([key, label]) => field(`liability_${key}`, `${label} balance`, "number", { min: 0, max: 100000000, step: 100, value: old[`liability_${key}`] })).join("");
+  return `<div class="form-section-head"><h2>2. Financial information — assets and liabilities</h2></div>
+    <p class="page-subtitle" style="margin-bottom:15px">Enter applicant-reported account balances and debts. Detailed institutions, account ownership, monthly payments, and source-of-funds verification must be captured in production.</p>
+    <div class="form-section-head"><h2>Assets</h2></div><div class="form-grid">${assets}</div>
+    <div class="form-divider"></div><div class="form-section-head"><h2>Liabilities</h2></div><div class="form-grid">${liabilities}</div>
+    <div class="form-divider"></div>
+    <div class="form-grid">${field("monthlyLiabilityPayments", "Total monthly liability payments", "number", { min: 0, max: 10000000, value: old.monthlyLiabilityPayments })}${field("fundsToClose", "Estimated funds available to close", "number", { min: 0, max: 100000000, value: old.fundsToClose })}</div>
+    ${stepFooter("Continue")}`;
+}
+
+function realEstateFormStep() {
+  const old = readFormValues();
+  return `<div class="form-section-head"><h2>3. Financial information — real estate</h2></div>
+    <p class="page-subtitle" style="margin-bottom:15px">List real estate owned by the borrower(s), including the subject property when applicable.</p>
+    <div class="form-grid">
+      ${field("ownsOtherProperty", "Do you own any other real estate?", "select", { required: true, items: yesNoOptions, value: old.ownsOtherProperty })}
+      ${field("otherPropertyStatus", "Property disposition", "select", { items: [["", "Select"], ["retained", "Retained"], ["sold", "Sold"], ["pending_sale", "Pending sale"]], value: old.otherPropertyStatus })}
+      ${field("otherPropertyAddress", "Other property street address", "text", { value: old.otherPropertyAddress, full: true })}
+      ${field("otherPropertyCity", "City", "text", { value: old.otherPropertyCity })}
+      ${field("otherPropertyState", "State", "select", { items: states, value: old.otherPropertyState })}
+      ${field("otherPropertyZip", "ZIP code", "text", { value: old.otherPropertyZip })}
+      ${field("otherPropertyValue", "Estimated property value", "number", { min: 0, max: 100000000, value: old.otherPropertyValue })}
+      ${field("otherPropertyMortgage", "Mortgage balance", "number", { min: 0, max: 100000000, value: old.otherPropertyMortgage })}
+      ${field("otherPropertyPayment", "Monthly mortgage payment", "number", { min: 0, max: 1000000, value: old.otherPropertyPayment })}
+      ${field("otherPropertyRentalIncome", "Monthly rental income", "number", { min: 0, max: 10000000, value: old.otherPropertyRentalIncome })}
+    </div>
+    ${stepFooter("Continue")}`;
+}
+
+function declarationFormStep() {
+  const old = readFormValues();
+  return `<div class="form-section-head"><h2>5. Declarations</h2><span class="required-note">Answer each question</span></div>
+    <div class="check-list">${declarations.map(([key, prompt]) => `<div><div class="declaration-row"><div class="declaration-question">${escapeHtml(prompt)} <span class="required">*</span></div><div class="radio-options">${[["yes", "Yes"], ["no", "No"]].map(([value, label]) => `<label class="radio-card"><input type="radio" name="declaration_${key}" value="${value}"${old[`declaration_${key}`] === value ? " checked" : ""} required> ${label}</label>`).join("")}</div></div><p class="field-error" data-error-for="declaration_${key}"></p></div>`).join("")}</div>
+    ${field("declarationDetails", "If you answered Yes, explain each applicable item", "textarea", { value: old.declarationDetails, full: true, hint: "Identify which declaration(s) and provide details." })}
+    ${stepFooter("Continue")}`;
+}
+
+function acknowledgmentsDemographicsStep() {
+  const old = readFormValues();
+  return `<div class="form-section-head"><h2>6. Acknowledgments and agreements</h2></div>
+    <div class="check-list">
+      <label class="check-row"><input type="checkbox" name="creditAuthorization"${old.creditAuthorization ? " checked" : ""}><span><strong>Credit report authorization</strong><br>Applicant authorizes a consumer report as required by the lender. This demo does not obtain a report.</span></label>
+      <label class="check-row"><input type="checkbox" name="accuracyAcknowledgment"${old.accuracyAcknowledgment ? " checked" : ""}><span><strong>Information accuracy acknowledgment</strong><br>Applicant confirms information is true and complete to the best of their knowledge.</span></label>
+      <label class="check-row"><input type="checkbox" name="electronicConsent"${old.electronicConsent ? " checked" : ""}><span><strong>Electronic communications consent</strong><br>Record separately from URLA acknowledgments in a production workflow.</span></label>
+    </div>
+    <p class="field-error" data-error-for="accuracyAcknowledgment"></p>
+    <div class="form-divider"></div><div class="form-section-head"><h2>7. Military service</h2></div>
+    <div class="form-grid">
+      ${field("militaryStatus", "Military service status", "select", { items: militaryStatuses, value: old.militaryStatus })}
+      ${field("militaryExpiration", "Expected service expiration date", "date", { value: old.militaryExpiration })}
+      <div class="field full"><span class="field-label">Surviving spouse of a service member who died in the line of duty?</span><div class="radio-options">${[["yes", "Yes"], ["no", "No"], ["not_applicable", "Not applicable"]].map(([value, label]) => `<label class="radio-card"><input type="radio" name="survivingSpouse" value="${value}"${old.survivingSpouse === value ? " checked" : ""}> ${label}</label>`).join("")}</div></div>
+    </div>
+    <div class="form-divider"></div><div class="form-section-head"><h2>8. Demographic information</h2><span class="required-note">Optional to provide</span></div>
+    <div class="notice">You are not required to provide this information, but are encouraged to do so. This information is requested by the federal government to monitor compliance with equal credit opportunity and fair housing laws. You may select one or more ethnicity and race designations, or decline to provide. Applicable collection and recording requirements depend on the application channel and coverage; have compliance counsel configure production handling.</div>
+    <div class="form-grid">
+      <div class="field full"><span class="field-label">Ethnicity (select all that apply)</span><div class="check-list">${ethnicityOptions.map(([key, label]) => `<label class="check-row"><input type="checkbox" name="ethnicity_${key}"${old[`ethnicity_${key}`] ? " checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")}<label class="check-row"><input type="checkbox" name="ethnicity_not_provided"${old.ethnicity_not_provided ? " checked" : ""}><span>I do not wish to provide this information</span></label></div></div>
+      <div class="field full"><span class="field-label">Sex</span><div class="radio-options">${[["female","Female"],["male","Male"],["sex_not_provided","I do not wish to provide this information"]].map(([value,label])=>`<label class="radio-card"><input type="radio" name="demographic_sex" value="${value}"${old.demographic_sex === value ? " checked" : ""}> ${label}</label>`).join("")}</div></div>
+      <div class="field full"><span class="field-label">Race (select all that apply)</span><div class="check-list">${raceOptions.map(([key,label])=>`<label class="check-row"><input type="checkbox" name="race_${key}"${old[`race_${key}`] ? " checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")}<label class="check-row"><input type="checkbox" name="race_not_provided"${old.race_not_provided ? " checked" : ""}><span>I do not wish to provide this information</span></label></div></div>
+    </div>
+    ${stepFooter("Continue")}`;
+}
+
+function originatorFormStep() {
+  const old = readFormValues();
+  const data = { ...old };
+  return `<div class="form-section-head"><h2>9. Loan originator information</h2></div>
+    <div class="form-grid">
+      ${field("originatorName", "Loan originator name", "text", { required: true, value: old.originatorName })}
+      ${field("originatorNmls", "Loan originator NMLSR ID", "text", { required: true, value: old.originatorNmls })}
+      ${field("originatorOrganization", "Organization name", "text", { required: true, value: old.originatorOrganization })}
+      ${field("organizationNmls", "Organization NMLSR ID", "text", { required: true, value: old.organizationNmls })}
+      ${field("originatorEmail", "Originator email", "email", { required: true, value: old.originatorEmail })}
+      ${field("originatorPhone", "Originator phone", "tel", { required: true, value: old.originatorPhone })}
+      ${field("originatorStreet", "Originator street address", "text", { required: true, value: old.originatorStreet, full: true })}
+      ${field("originatorCity", "Originator city", "text", { required: true, value: old.originatorCity })}
+      ${field("originatorState", "Originator state", "select", { required: true, items: states, value: old.originatorState })}
+      ${field("originatorZip", "Originator ZIP code", "text", { required: true, value: old.originatorZip })}
+      ${field("originatorStateLicense", "Originator state license ID", "text", { value: old.originatorStateLicense })}
     </div>
     <div class="form-divider"></div>
-    <div class="form-section-head"><h2>Applicant authorizations</h2></div>
-    <div class="check-list">
-      <label class="check-row"><input type="checkbox" name="creditAuthorization"${old.creditAuthorization ? " checked" : ""}><span><strong>Credit report authorization <span class="required">*</span></strong><br>I authorize the lender to obtain a consumer report as part of evaluating this application. No report is obtained by this prototype.</span></label>
-      <label class="check-row"><input type="checkbox" name="electronicConsent"${old.electronicConsent ? " checked" : ""}><span><strong>Electronic communications <span class="required">*</span></strong><br>I consent to receive application communications and disclosures electronically.</span></label>
-      <label class="check-row"><input type="checkbox" name="privacyAcknowledgment"${old.privacyAcknowledgment ? " checked" : ""}><span><strong>Privacy notice acknowledgment <span class="required">*</span></strong><br>I acknowledge receipt of the lender's privacy notice.</span></label>
+    <div class="form-section-head"><h2>Lender-use workflow information</h2></div>
+    <div class="notice">The GSE URLA includes lender-use information separate from borrower Sections 1–9. This prototype does not implement the full lender section, MISMO mapping, AUS submission, disclosures, or signature package.</div>
+    <div class="form-grid">
+      ${field("internalLoanNumber", "Internal loan number", "text", { value: old.internalLoanNumber })}
+      ${field("loanOfficer", "Assigned loan officer", "text", { value: old.loanOfficer })}
+      ${field("applicationChannel", "Application channel", "select", { items: [["", "Select"], ["face_to_face", "Face-to-face"], ["telephone", "Telephone"], ["mail", "Mail"], ["internet", "Internet"], ["video", "Video"], ["other", "Other"]], value: old.applicationChannel })}
     </div>
-    <p class="field-error" data-error-for="consents"></p>
-    <div class="form-footer"><span class="form-footer-note">Required consents are recorded with the submission.</span><span class="button-group"><button class="button button-secondary" type="button" data-action="back">Back</button><button class="button button-primary" type="button" data-action="next">Review application <span aria-hidden="true">→</span></button></span></div>`;
+    ${reviewSummary(data)}
+    <div class="notice warning">This prototype is not the official Fannie Mae Form 1003 / Freddie Mac Form 65 and does not establish URLA, GSE, Regulation B, HMDA, state-law, or lender-policy compliance. Validate the current official form and all applicable processes with compliance counsel before production use.</div>
+    <div class="form-footer"><span class="form-footer-note">Demo data remains in this browser tab's memory.</span><span class="button-group"><button class="button button-secondary" type="button" data-action="back">Back</button><button class="button button-primary" type="submit">Create mortgage application <span aria-hidden="true">→</span></button></span></div>`;
+}
+
+function stepFooter(nextLabel) {
+  return `<div class="form-footer"><span class="form-footer-note">URLA-aligned information capture · demo only</span><span class="button-group"><button class="button button-secondary" type="button" data-action="back">Back</button><button class="button button-primary" type="button" data-action="next">${escapeHtml(nextLabel)} <span aria-hidden="true">→</span></button></span></div>`;
+}
+
+function reviewSummary(data) {
+  return `<div class="form-divider"></div><div class="form-section-head"><h2>Application summary</h2></div>
+    <div class="review-block"><h3>Borrower</h3><div class="review-grid">
+      ${reviewItem("Name", fullName(data))}${reviewItem("Date of birth", displayDate(data.dateOfBirth))}
+      ${reviewItem("Citizenship", citizenshipTypes.find(([key]) => key === data.citizenship)?.[1])}
+      ${reviewItem("Current address", [data.borrowerAddress, data.borrowerAddress2, data.borrowerCity, data.borrowerState, data.borrowerZip].filter(Boolean).join(", "))}
+      ${reviewItem("Email", data.email)}${reviewItem("Phone", data.phone)}
+    </div></div>
+    <div class="review-block"><h3>Loan and property</h3><div class="review-grid">
+      ${reviewItem("Purpose", purposes.find(([key]) => key === data.loanPurpose)?.[1])}${reviewItem("Requested amount", money(data.loanAmount))}
+      ${reviewItem("Program", loanPrograms.find(([key]) => key === data.loanProgram)?.[1])}${reviewItem("Property", [data.propertyAddress, data.propertyCity, data.propertyState, data.propertyZip].filter(Boolean).join(", "))}
+      ${reviewItem("Estimated value", money(data.propertyValue))}${reviewItem("Occupancy", occupancyTypes.find(([key]) => key === data.occupancy)?.[1])}
+    </div></div>`;
 }
 
 function readFormValues() {
@@ -265,37 +531,12 @@ function readFormValues() {
   const values = { ...formDraft };
   if (!form) return values;
   new FormData(form).forEach((value, key) => { values[key] = value; });
-  ["creditAuthorization", "electronicConsent", "privacyAcknowledgment"].forEach((name) => {
-    const control = form.elements.namedItem(name);
-    if (control) values[name] = control.checked;
-  });
+  form.querySelectorAll('input[type="checkbox"]').forEach((control) => { values[control.name] = control.checked; });
   return values;
 }
 
 function reviewItem(label, value) {
   return `<div class="review-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || "—")}</strong></div>`;
-}
-
-function reviewFormStep() {
-  const data = readFormValues();
-  const housingLabel = { rent: "Rent", own: "Own", other: "Other" }[data.housing] ?? "—";
-  const employmentLabel = employmentTypes.find(([key]) => key === data.employment)?.[1] ?? "—";
-  return `<div class="form-section-head"><h2>Review application</h2><span class="required-note">Check details before submitting</span></div>
-    <div class="review-block"><h3>Applicant</h3><div class="review-grid">
-      ${reviewItem("Legal name", fullName(data))}${reviewItem("Date of birth", displayDate(data.dateOfBirth))}
-      ${reviewItem("Email", data.email)}${reviewItem("Phone", data.phone)}
-      ${reviewItem("Address", [data.address1, data.address2, data.city, data.state, data.zip].filter(Boolean).join(", "))}
-    </div></div>
-    <div class="review-block"><h3>Request & finances</h3><div class="review-loan"><div><span>Requested loan amount</span><br><strong>${money(data.loanAmount)}</strong></div><span>${escapeHtml(data.loanTerm)} month term</span></div>
-      <div class="review-grid" style="margin-top:12px">
-        ${reviewItem("Purpose", purposeLabel(data.loanPurpose))}${reviewItem("Housing status", housingLabel)}
-        ${reviewItem("Monthly housing", money(data.monthlyHousing))}${reviewItem("Employment", employmentLabel)}
-        ${reviewItem("Monthly gross income", money(data.monthlyIncome))}${reviewItem("Other monthly income", money(data.otherIncome))}
-        ${reviewItem("Monthly debt payments", money(data.monthlyDebt))}${reviewItem("Employer", data.employer)}
-      </div>
-    </div>
-    <div class="notice">By submitting, you confirm these details and authorizations are recorded for this demo. This is not a pre-qualification result, credit decision, or loan offer. Submission routes the case to processing.</div>
-    <div class="form-footer"><span class="form-footer-note">All data remains in this browser tab's memory.</span><span class="button-group"><button class="button button-secondary" type="button" data-action="back">Back</button><button class="button button-primary" type="submit">Submit application <span aria-hidden="true">→</span></button></span></div>`;
 }
 
 function setFieldError(name, message) {
@@ -310,54 +551,76 @@ function clearErrors() {
   appRoot.querySelectorAll("[aria-invalid='true']").forEach((item) => item.removeAttribute("aria-invalid"));
 }
 
-function validateApplicantStep() {
+function validateCurrentStep() {
   clearErrors();
-  const form = document.getElementById("application-form");
   const data = readFormValues();
   const errors = {};
-  ["firstName", "lastName", "email", "phone", "address1", "city", "state", "zip"].forEach((name) => {
-    if (!String(data[name] ?? "").trim()) errors[name] = `${fieldNames[name]} is required.`;
+  const requireFields = (names) => names.forEach((name) => {
+    if (!String(data[name] ?? "").trim()) errors[name] = `${fieldNames[name] ?? name} is required.`;
   });
-  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = "Enter a valid email address.";
-  const digits = String(data.phone ?? "").replace(/\D/g, "");
-  if (data.phone && (digits.length < 10 || digits.length > 15)) errors.phone = "Enter a valid phone number with 10 to 15 digits.";
-  if (data.zip && !/^\d{5}(?:-\d{4})?$/.test(data.zip.trim())) errors.zip = "Enter a 5-digit ZIP code or ZIP+4.";
-  if (!data.dateOfBirth) errors.dateOfBirth = "Date of birth is required.";
-  else {
-    const date = new Date(`${data.dateOfBirth}T12:00:00`);
-    const latestEligibleDate = new Date();
-    latestEligibleDate.setHours(12, 0, 0, 0);
-    latestEligibleDate.setFullYear(latestEligibleDate.getFullYear() - 18);
-    if (Number.isNaN(date.getTime()) || date > latestEligibleDate) errors.dateOfBirth = "Applicant must be at least 18 years old.";
-  }
-  Object.entries(errors).forEach(([name, message]) => setFieldError(name, message));
-  if (Object.keys(errors).length) {
-    appRoot.querySelector("[aria-invalid='true']")?.focus();
-    return false;
-  }
-  return Boolean(form);
-}
+  const validateEmail = (name) => {
+    if (data[name] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data[name])) errors[name] = "Enter a valid email address.";
+  };
+  const validateZip = (name) => {
+    if (data[name] && !/^\d{5}(?:-\d{4})?$/.test(data[name].trim())) errors[name] = "Enter a 5-digit ZIP code or ZIP+4.";
+  };
+  const validatePositiveMoney = (name, required = false) => {
+    if (required && !data[name]) errors[name] = `${fieldNames[name] ?? name} is required.`;
+    else if (data[name] && (!Number.isFinite(Number(data[name])) || Number(data[name]) <= 0)) errors[name] = "Enter an amount greater than $0.";
+  };
+  const validateNonNegativeMoney = (name) => {
+    if (data[name] && (!Number.isFinite(Number(data[name])) || Number(data[name]) < 0)) errors[name] = "Enter a valid non-negative amount.";
+  };
 
-function validateFinanceStep() {
-  clearErrors();
-  const data = readFormValues();
-  const errors = {};
-  if (!data.loanAmount || !Number.isInteger(Number(data.loanAmount)) || Number(data.loanAmount) < 500 || Number(data.loanAmount) > 100000) errors.loanAmount = "Enter a whole-dollar loan amount from $500 to $100,000.";
-  ["loanPurpose", "loanTerm", "employment"].forEach((name) => {
-    if (!data[name]) errors[name] = `${fieldNames[name]} is required.`;
-  });
-  if (!data.housing) errors.housing = "Select the applicant's housing status.";
-  if (data.monthlyHousing === "" || !Number.isInteger(Number(data.monthlyHousing)) || Number(data.monthlyHousing) < 0 || Number(data.monthlyHousing) > 100000) errors.monthlyHousing = "Enter a whole-dollar monthly housing cost.";
-  if (!data.monthlyIncome || !Number.isInteger(Number(data.monthlyIncome)) || Number(data.monthlyIncome) <= 0 || Number(data.monthlyIncome) > 10000000) errors.monthlyIncome = "Enter a whole-dollar monthly income greater than $0.";
-  if (data.otherIncome && (!Number.isInteger(Number(data.otherIncome)) || Number(data.otherIncome) < 0 || Number(data.otherIncome) > 10000000)) errors.otherIncome = "Enter a whole-dollar other monthly income.";
-  if (data.monthlyDebt === "" || !Number.isInteger(Number(data.monthlyDebt)) || Number(data.monthlyDebt) < 0 || Number(data.monthlyDebt) > 1000000) errors.monthlyDebt = "Enter a whole-dollar monthly debt payment amount.";
-  ["creditAuthorization", "electronicConsent", "privacyAcknowledgment"].forEach((name) => {
-    if (!data[name]) errors.consents = "All three applicant authorizations are required to submit.";
-  });
+  if (formStep === 1) {
+    requireFields(["firstName", "lastName", "dateOfBirth", "citizenship", "maritalStatus", "email", "phone", "borrowerAddress", "borrowerCity", "borrowerState", "borrowerZip", "residenceType", "yearsAtAddress"]);
+    if (["married", "separated"].includes(data.maritalStatus)) requireFields(["spouseFirstName", "spouseLastName"]);
+    validateEmail("email");
+    validateZip("borrowerZip");
+    if (data.dateOfBirth && new Date(`${data.dateOfBirth}T12:00:00`) > new Date()) errors.dateOfBirth = "Date of birth cannot be in the future.";
+    if (data.yearsAtAddress && (Number(data.yearsAtAddress) < 0 || Number(data.yearsAtAddress) > 150)) errors.yearsAtAddress = "Enter a valid number of years at this address.";
+    if (data.dependentsCount && (!Number.isInteger(Number(data.dependentsCount)) || Number(data.dependentsCount) < 0 || Number(data.dependentsCount) > 20)) errors.dependentsCount = "Enter a whole number of dependents from 0 to 20.";
+    const digits = String(data.phone ?? "").replace(/\D/g, "");
+    if (data.phone && (digits.length < 10 || digits.length > 15)) errors.phone = "Enter a valid phone number with 10 to 15 digits.";
+    if (Number(data.yearsAtAddress) < 2) requireFields(["formerAddress", "formerCity", "formerState", "formerZip", "formerResidenceType", "formerYears"]);
+    validateZip("formerZip");
+  } else if (formStep === 2) {
+    requireFields(["loanPurpose", "loanAmount", "loanProgram", "loanTerm", "propertyAddress", "propertyCity", "propertyState", "propertyZip", "propertyValue", "occupancy", "propertyType", "units"]);
+    validatePositiveMoney("loanAmount", true);
+    validatePositiveMoney("propertyValue", true);
+    ["purchasePrice", "downPayment", "originalPurchasePrice", "existingLienPayoff", "improvementsCost"].forEach(validateNonNegativeMoney);
+    if (data.loanPurpose === "purchase") requireFields(["purchasePrice"]);
+    if (data.loanPurpose === "refinance") requireFields(["refinanceType"]);
+    validateZip("propertyZip");
+  } else if (formStep === 3) {
+    requireFields(["employment", "monthlyIncome"]);
+    validatePositiveMoney("monthlyIncome", true);
+    ["overtimeIncome", "bonusIncome", "commissionIncome", "otherIncome"].forEach(validateNonNegativeMoney);
+  } else if (formStep === 4) {
+    [...accountTypes.map(([key]) => `asset_${key}`), ...liabilityTypes.map(([key]) => `liability_${key}`), "monthlyLiabilityPayments", "fundsToClose"].forEach(validateNonNegativeMoney);
+  } else if (formStep === 5) {
+    requireFields(["ownsOtherProperty"]);
+    if (data.ownsOtherProperty === "yes") requireFields(["otherPropertyStatus", "otherPropertyAddress", "otherPropertyCity", "otherPropertyState", "otherPropertyZip", "otherPropertyValue", "otherPropertyMortgage", "otherPropertyPayment"]);
+    validateZip("otherPropertyZip");
+    ["otherPropertyValue", "otherPropertyMortgage", "otherPropertyPayment", "otherPropertyRentalIncome"].forEach(validateNonNegativeMoney);
+  } else if (formStep === 6) {
+    declarations.forEach(([key]) => {
+      if (!data[`declaration_${key}`]) errors[`declaration_${key}`] = "Answer Yes or No.";
+    });
+    if (declarations.some(([key]) => data[`declaration_${key}`] === "yes") && !data.declarationDetails?.trim()) errors.declarationDetails = "Provide details for each Yes answer.";
+  } else if (formStep === 7) {
+    if (!data.accuracyAcknowledgment) errors.accuracyAcknowledgment = "Acknowledge the information accuracy statement to continue.";
+  } else if (formStep === 8) {
+    requireFields(["originatorName", "originatorNmls", "originatorOrganization", "organizationNmls", "originatorEmail", "originatorPhone", "originatorStreet", "originatorCity", "originatorState", "originatorZip"]);
+    validateEmail("originatorEmail");
+    validateZip("originatorZip");
+    ["originatorNmls", "organizationNmls"].forEach((name) => {
+      if (data[name] && !/^\d{1,12}$/.test(data[name].trim())) errors[name] = "Enter a valid NMLSR ID using digits only.";
+    });
+  }
   Object.entries(errors).forEach(([name, message]) => setFieldError(name, message));
   if (Object.keys(errors).length) {
     appRoot.querySelector("[aria-invalid='true']")?.focus();
-    appRoot.querySelector(".field-error:not(:empty)")?.scrollIntoView({ behavior: "smooth", block: "center" });
     return false;
   }
   return true;
@@ -435,18 +698,26 @@ function detailPage(record) {
     <div class="detail-layout"><div class="detail-main">
       <section class="panel detail-section"><h2 class="detail-section-title">Applicant details <small>Personal information</small></h2><div class="detail-grid">
         ${detailField("Date of birth", displayDate(record.dateOfBirth))}${detailField("Phone", record.phone)}${detailField("Email", record.email)}
-        ${detailField("Residential address", [record.address1, record.address2, record.city, record.state, record.zip].filter(Boolean).join(", "))}${detailField("Housing status", { rent: "Rent", own: "Own", other: "Other" }[record.housing] ?? record.housing)}${detailField("Monthly housing cost", money(record.monthlyHousing))}
+        ${detailField("Residential address", [record.borrowerAddress, record.borrowerAddress2, record.borrowerCity, record.borrowerState, record.borrowerZip].filter(Boolean).join(", "))}${detailField("Citizenship", citizenshipTypes.find(([key]) => key === record.citizenship)?.[1])}${detailField("Marital status", maritalStatuses.find(([key]) => key === record.maritalStatus)?.[1])}
       </div></section>
-      <section class="panel detail-section"><h2 class="detail-section-title">Request & finances <small>Applicant reported</small></h2><div class="detail-grid">
-        ${detailField("Requested amount", money(record.loanAmount))}${detailField("Purpose", purposeLabel(record.loanPurpose))}${detailField("Preferred term", `${record.loanTerm} months`)}
-        ${detailField("Employment", employmentTypes.find(([key]) => key === record.employment)?.[1] ?? record.employment)}${detailField("Employer", record.employer || "Not provided")}${detailField("Occupation", record.occupation || "Not provided")}
-        ${detailField("Monthly gross income", money(record.monthlyIncome))}${detailField("Other monthly income", money(record.otherIncome))}${detailField("Monthly debt payments", money(record.monthlyDebt))}
+      <section class="panel detail-section"><h2 class="detail-section-title">Loan and property <small>Applicant reported</small></h2><div class="detail-grid">
+        ${detailField("Requested amount", money(record.loanAmount))}${detailField("Purpose", purposes.find(([key]) => key === record.loanPurpose)?.[1])}${detailField("Loan program", loanPrograms.find(([key]) => key === record.loanProgram)?.[1])}
+        ${detailField("Subject property", [record.propertyAddress, record.propertyCity, record.propertyState, record.propertyZip].filter(Boolean).join(", "))}${detailField("Estimated value", money(record.propertyValue))}${detailField("Occupancy", occupancyTypes.find(([key]) => key === record.occupancy)?.[1])}
+        ${detailField("Property type", propertyTypes.find(([key]) => key === record.propertyType)?.[1])}${detailField("Units", record.units)}${detailField("Purchase price", record.purchasePrice ? money(record.purchasePrice) : "Not applicable")}
       </div></section>
-      <section class="panel detail-section"><h2 class="detail-section-title">Applicant authorizations <small>Recorded at submission</small></h2><div class="detail-grid">
-        ${detailField("Credit report authorization", record.creditAuthorization ? "Recorded" : "Not recorded")}${detailField("Electronic communications", record.electronicConsent ? "Recorded" : "Not recorded")}${detailField("Privacy notice acknowledgment", record.privacyAcknowledgment ? "Recorded" : "Not recorded")}
+      <section class="panel detail-section"><h2 class="detail-section-title">Employment, income and finances <small>Applicant reported</small></h2><div class="detail-grid">
+        ${detailField("Employment", employmentTypes.find(([key]) => key === record.employment)?.[1])}${detailField("Employer", record.employer || "Not provided")}${detailField("Occupation", record.occupation || "Not provided")}
+        ${detailField("Monthly base income", money(record.monthlyIncome))}${detailField("Other monthly income", money(record.otherIncome))}${detailField("Funds available to close", money(record.fundsToClose))}
+      </div></section>
+      <section class="panel detail-section"><h2 class="detail-section-title">Acknowledgments <small>Recorded in this demo</small></h2><div class="detail-grid">
+        ${detailField("Credit report authorization", record.creditAuthorization ? "Checked" : "Not checked")}${detailField("Accuracy acknowledgment", record.accuracyAcknowledgment ? "Checked" : "Not checked")}${detailField("Electronic communications", record.electronicConsent ? "Checked" : "Not checked")}
+      </div></section>
+      <section class="panel detail-section"><h2 class="detail-section-title">Loan originator <small>Section 9</small></h2><div class="detail-grid">
+        ${detailField("Originator", record.originatorName)}${detailField("NMLSR ID", record.originatorNmls)}${detailField("Organization", record.originatorOrganization)}
+        ${detailField("Organization NMLSR ID", record.organizationNmls)}${detailField("Email", record.originatorEmail)}${detailField("Phone", record.originatorPhone)}
       </div></section>
     </div><aside class="side-stack">
-      <section class="panel"><h3>Loan request</h3><div class="summary-amount">${money(record.loanAmount)}</div><div class="summary-caption">${escapeHtml(purposeLabel(record.loanPurpose))}</div><div class="summary-divider"></div><div class="summary-line"><span>Preferred term</span><strong>${escapeHtml(record.loanTerm)} months</strong></div><div class="summary-line"><span>Application status</span><strong>${escapeHtml(status)}</strong></div></section>
+      <section class="panel"><h3>Mortgage request</h3><div class="summary-amount">${money(record.loanAmount)}</div><div class="summary-caption">${escapeHtml(purposes.find(([key]) => key === record.loanPurpose)?.[1] ?? "")}</div><div class="summary-divider"></div><div class="summary-line"><span>Program</span><strong>${escapeHtml(loanPrograms.find(([key]) => key === record.loanProgram)?.[1] ?? "—")}</strong></div><div class="summary-line"><span>Application status</span><strong>${escapeHtml(status)}</strong></div></section>
       <section class="panel"><h3>Case timeline</h3>${workflowTimeline(record)}</section>
       ${workflowAction}
     </aside></div>`;
@@ -489,7 +760,7 @@ function submitApplication() {
   const data = readFormValues();
   const record = {
     ...data,
-    id: `PL-${new Date().getFullYear()}-${String(applications.length + 1).padStart(4, "0")}`,
+    id: `MTG-${new Date().getFullYear()}-${String(applications.length + 1).padStart(4, "0")}`,
     status: "processing",
     createdAt: todayIso(),
     processedAt: "",
@@ -504,7 +775,7 @@ function submitApplication() {
   currentView = "detail";
   currentApplicationId = record.id;
   render();
-  showToast(`Application ${record.id} submitted to the processing queue.`);
+  showToast(`Mortgage application ${record.id} submitted to the processing queue.`);
 }
 
 function recordDecision(outcome) {
@@ -587,7 +858,7 @@ document.addEventListener("click", (event) => {
   if (!action) return;
   if (action === "new") showForm();
   if (action === "next") {
-    if ((formStep === 1 && validateApplicantStep()) || (formStep === 2 && validateFinanceStep())) {
+    if (validateCurrentStep()) {
       formDraft = readFormValues();
       formStep += 1;
       render();
@@ -648,6 +919,7 @@ function restoreFormValues(values) {
 document.addEventListener("submit", (event) => {
   if (event.target.id !== "application-form") return;
   event.preventDefault();
+  if (!validateCurrentStep()) return;
   submitApplication();
 });
 
@@ -659,6 +931,18 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("change", (event) => {
   if (event.target.id === "status-filter") filterApplications();
+  if (event.target.matches('input[name="ethnicity_not_provided"], input[name="race_not_provided"]')) {
+    if (event.target.checked) {
+      const prefix = event.target.name.startsWith("ethnicity") ? "ethnicity_" : "race_";
+      appRoot.querySelectorAll(`input[name^="${prefix}"]:not([name$="not_provided"])`).forEach((input) => { input.checked = false; });
+    }
+  } else if (event.target.name?.startsWith("ethnicity_") || event.target.name?.startsWith("race_")) {
+    if (event.target.checked) {
+      const prefix = event.target.name.startsWith("ethnicity_") ? "ethnicity_" : "race_";
+      const refusal = appRoot.querySelector(`input[name="${prefix}not_provided"]`);
+      if (refusal) refusal.checked = false;
+    }
+  }
 });
 
 render();
