@@ -83,7 +83,7 @@ const militaryStatuses = [
   ["surviving_spouse", "Surviving spouse"]
 ];
 const ethnicityOptions = [
-  ["hispanic", "Hispanic or Latino"], ["not_hispanic", "Not Hispanic or Latino"], ["mexican", "Mexican"], ["puerto_rican", "Puerto Rican"],
+  ["mexican", "Mexican"], ["puerto_rican", "Puerto Rican"],
   ["cuban", "Cuban"], ["other_hispanic", "Other Hispanic or Latino"]
 ];
 const raceOptions = [
@@ -468,9 +468,11 @@ function acknowledgmentsDemographicsStep() {
       <div class="field full"><span class="field-label">Surviving spouse of a service member who died in the line of duty?</span><div class="radio-options">${[["yes", "Yes"], ["no", "No"], ["not_applicable", "Not applicable"]].map(([value, label]) => `<label class="radio-card"><input type="radio" name="survivingSpouse" value="${value}"${old.survivingSpouse === value ? " checked" : ""}> ${label}</label>`).join("")}</div></div>
     </div>
     <div class="form-divider"></div><div class="form-section-head"><h2>8. Demographic information</h2><span class="required-note">Optional to provide</span></div>
-    <div class="notice">You are not required to provide this information, but are encouraged to do so. This information is requested by the federal government to monitor compliance with equal credit opportunity and fair housing laws. You may select one or more ethnicity and race designations, or decline to provide. Applicable collection and recording requirements depend on the application channel and coverage; have compliance counsel configure production handling.</div>
+    <div class="notice">You are not required to provide this information, but are encouraged to do so. This information is requested by the federal government to monitor compliance with equal credit opportunity and fair housing laws. Select an ethnicity and sex response; if Hispanic or Latino, select all applicable detail(s). Select all applicable race designations or decline to provide. Applicable collection and recording requirements depend on the application channel and coverage; have compliance counsel configure production handling.</div>
     <div class="form-grid">
-      <div class="field full"><span class="field-label">Ethnicity (select all that apply)</span><div class="check-list">${ethnicityOptions.map(([key, label]) => `<label class="check-row"><input type="checkbox" name="ethnicity_${key}"${old[`ethnicity_${key}`] ? " checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")}<label class="check-row"><input type="checkbox" name="ethnicity_not_provided"${old.ethnicity_not_provided ? " checked" : ""}><span>I do not wish to provide this information</span></label></div></div>
+      <div class="field full"><span class="field-label">Ethnicity</span><div class="radio-options">${[["hispanic","Hispanic or Latino"],["not_hispanic","Not Hispanic or Latino"],["not_provided","I do not wish to provide this information"]].map(([value,label])=>`<label class="radio-card"><input type="radio" name="demographic_ethnicity" value="${value}"${old.demographic_ethnicity === value ? " checked" : ""}> ${label}</label>`).join("")}</div>
+        <div id="ethnicity-detail" class="check-list${old.demographic_ethnicity === "hispanic" ? "" : " is-hidden"}">${ethnicityOptions.map(([key, label]) => `<label class="check-row"><input type="checkbox" name="ethnicity_${key}"${old[`ethnicity_${key}`] ? " checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")}</div>
+      </div>
       <div class="field full"><span class="field-label">Sex</span><div class="radio-options">${[["female","Female"],["male","Male"],["sex_not_provided","I do not wish to provide this information"]].map(([value,label])=>`<label class="radio-card"><input type="radio" name="demographic_sex" value="${value}"${old.demographic_sex === value ? " checked" : ""}> ${label}</label>`).join("")}</div></div>
       <div class="field full"><span class="field-label">Race (select all that apply)</span><div class="check-list">${raceOptions.map(([key,label])=>`<label class="check-row"><input type="checkbox" name="race_${key}"${old[`race_${key}`] ? " checked" : ""}><span>${escapeHtml(label)}</span></label>`).join("")}<label class="check-row"><input type="checkbox" name="race_not_provided"${old.race_not_provided ? " checked" : ""}><span>I do not wish to provide this information</span></label></div></div>
     </div>
@@ -931,15 +933,20 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("change", (event) => {
   if (event.target.id === "status-filter") filterApplications();
-  if (event.target.matches('input[name="ethnicity_not_provided"], input[name="race_not_provided"]')) {
-    if (event.target.checked) {
-      const prefix = event.target.name.startsWith("ethnicity") ? "ethnicity_" : "race_";
-      appRoot.querySelectorAll(`input[name^="${prefix}"]:not([name$="not_provided"])`).forEach((input) => { input.checked = false; });
+  if (event.target.name === "demographic_ethnicity") {
+    const detail = appRoot.querySelector("#ethnicity-detail");
+    detail?.classList.toggle("is-hidden", event.target.value !== "hispanic");
+    if (event.target.value !== "hispanic") {
+      appRoot.querySelectorAll('input[name^="ethnicity_"]').forEach((input) => { input.checked = false; });
     }
-  } else if (event.target.name?.startsWith("ethnicity_") || event.target.name?.startsWith("race_")) {
+  }
+  if (event.target.matches('input[name="race_not_provided"]')) {
     if (event.target.checked) {
-      const prefix = event.target.name.startsWith("ethnicity_") ? "ethnicity_" : "race_";
-      const refusal = appRoot.querySelector(`input[name="${prefix}not_provided"]`);
+      appRoot.querySelectorAll('input[name^="race_"]:not([name="race_not_provided"])').forEach((input) => { input.checked = false; });
+    }
+  } else if (event.target.name?.startsWith("race_")) {
+    if (event.target.checked) {
+      const refusal = appRoot.querySelector('input[name="race_not_provided"]');
       if (refusal) refusal.checked = false;
     }
   }

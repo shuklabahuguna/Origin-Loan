@@ -13,7 +13,7 @@ Open `index.html` in a modern browser. No build step, server, or package install
 - Social Security number, identity-document capture, complete additional-borrower Form 1003A/65A support, fully itemized assets/liabilities and real-estate schedules, signatures, MISMO mapping, automated underwriting, and the full lender-use section are intentionally not implemented. Use the current official GSE forms and a properly secured lender system for production.
 - The app does not transmit data, call credit bureaus, verify identity/income/assets, create disclosures or loan documents, issue pre-qualification, or make automated underwriting decisions.
 - URLA requiredness is context- and lender-process-dependent. Client-side checks here are illustrative form-completeness checks, not legal, underwriting, or eligibility rules.
-- Demographic answers are optional in the borrower interface, with multi-selection and refusal choices. Regulation B and HMDA duties are separate and depend on applicability, coverage, and application channel. Configure observation, recording, reporting, and retention processes only after compliance review.
+- Demographic answers are optional in the borrower interface, with URLA-style ethnicity choices, race multi-selection, and refusal options. Regulation B and HMDA duties are separate and depend on applicability, coverage, and application channel. Configure observation, recording, reporting, and retention processes only after compliance review.
 - “Funded” is a workflow demonstration only; it does not initiate or verify a payment.
 
 ## Intake sections represented
